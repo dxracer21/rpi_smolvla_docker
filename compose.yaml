@@ -1,0 +1,41 @@
+services:
+  smolvla-rpi:
+    build:
+      context: .
+      platforms:
+        - linux/arm64
+    image: smolvla_rpi:dev
+    platform: linux/arm64
+    hostname: smolvla-rpi
+    cpus: 4.0
+    mem_limit: 8g
+    memswap_limit: 8g
+    volumes:
+      - .:/workspace
+      - ./models:/models
+    environment:
+      HF_HOME: /models/huggingface
+    working_dir: /workspace
+    command: ["python", "/usr/local/bin/verify_lerobot.py"]
+
+  smolvla-dev:
+    build:
+      context: .
+      platforms:
+        - linux/arm64
+    image: smolvla_rpi:dev
+    container_name: smolvla-dev
+    platform: linux/arm64
+    hostname: smolvla-dev
+    cpus: 4.0
+    mem_limit: 8g
+    memswap_limit: 8g
+    volumes:
+      - .:/workspace
+      - ./models:/models
+    environment:
+      HF_HOME: /models/huggingface
+    working_dir: /workspace
+    command: ["sleep", "infinity"]
+    stdin_open: true
+    tty: true

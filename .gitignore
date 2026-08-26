@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.cache/
+.huggingface/
+models/
+checkpoints/
+__pycache__/
+*.pyc
+build/
+install/
+log/
+results/
