@@ -57,7 +57,9 @@ RUN python -m pip install --requirement /tmp/requirements-lerobot.txt \
     && python -m pip check
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3-colcon-common-extensions \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        python3-colcon-common-extensions \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
