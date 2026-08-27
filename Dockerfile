@@ -36,7 +36,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && dpkg -i /tmp/ros2-apt-source.deb \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        python3-colcon-common-extensions \
         ros-${ROS_DISTRO}-compressed-image-transport \
         ros-${ROS_DISTRO}-image-transport \
         ros-${ROS_DISTRO}-realsense2-camera \
@@ -56,6 +55,10 @@ COPY requirements-lerobot.txt /tmp/requirements-lerobot.txt
 RUN python -m pip install --requirement /tmp/requirements-lerobot.txt \
     && rm /tmp/requirements-lerobot.txt \
     && python -m pip check
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3-colcon-common-extensions \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace
 
