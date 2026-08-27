@@ -62,7 +62,7 @@ function renderStatus(data) {
   buttons.stop.disabled = !busy;
   buttons.reset.disabled = busy && !["INFERENCING", "STOPPING"].includes(data.state);
   elements.taskInput.disabled = busy;
-  elements.modelSelect.disabled = busy || loaded;
+  elements.modelSelect.disabled = busy;
 
   if (result?.action?.[0]) {
     result.action[0].forEach((value, index) => {
@@ -84,6 +84,38 @@ function renderStatus(data) {
     elements.actionMessage.textContent = "Session invalidated. Waiting for the CPU calculation to finish safely…";
   } else if (data.state === "RESULT_READY") {
     elements.actionMessage.textContent = "Dry-run inference completed. No robot command was sent.";
+  } else if (data.state === "IDLE") {
+    elements.actionMessage.textContent = "Model loaded. Ready to run inference.";
+  } else if (data.state === "STOPPED") {
+    elements.actionMessage.textContent = "Session stopped. The model remains loaded and ready.";
+  } else if (data.state === "UNLOADED") {
+    elements.actionMessage.textContent = "Select a checkpoint and load the model.";
+  }
+}
+
+async function refreshModels() {
+  try {
+    const response = await fetch("/api/models", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { models } = await response.json();
+    const selected = latestStatus?.model ?? elements.modelSelect.value;
+    elements.modelSelect.replaceChildren();
+    models.forEach((model) => {
+      const option = document.createElement("option");
+      option.value = model.path;
+      option.textContent = model.name;
+      option.selected = model.path === selected;
+      elements.modelSelect.append(option);
+    });
+    if (models.length === 0) {
+      const option = document.createElement("option");
+      option.textContent = "No checkpoints found in /models";
+      option.value = "";
+      elements.modelSelect.append(option);
+      buttons.load.disabled = true;
+    }
+  } catch (error) {
+    elements.actionMessage.textContent = `Could not list checkpoints: ${error.message}`;
   }
 }
 
@@ -128,5 +160,5 @@ Object.entries(buttons).forEach(([action, button]) => {
   button.addEventListener("click", () => request(action));
 });
 
-refreshStatus();
+refreshStatus().then(refreshModels);
 setInterval(refreshStatus, 2000);

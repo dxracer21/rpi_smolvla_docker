@@ -54,6 +54,15 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
         if path == "/api/status":
             self.send_json(SERVICE.status())
             return
+        if path == "/api/models":
+            models_root = Path("/models")
+            models = [
+                {"name": item.name, "path": str(item)}
+                for item in sorted(models_root.iterdir())
+                if item.is_dir() and (item / "model.safetensors").is_file()
+            ] if models_root.is_dir() else []
+            self.send_json({"models": models})
+            return
         if path == "/":
             self.path = "/index.html"
         super().do_GET()
