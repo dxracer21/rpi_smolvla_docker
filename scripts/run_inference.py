@@ -38,6 +38,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task", default=DEFAULT_TASK, help="Natural-language task instruction")
     parser.add_argument("--runs", type=int, default=1, help="Number of full model inferences (default: 1)")
     parser.add_argument("--seed", type=int, default=0, help="Random seed used for dummy images")
+    parser.add_argument(
+        "--dtype",
+        choices=("checkpoint", "float32"),
+        default="checkpoint",
+        help="Use checkpoint dtypes or cast all floating-point model parameters to FP32",
+    )
     parser.add_argument("--output-json", type=Path, help="Optional path for a JSON result file")
     return parser.parse_args()
 
@@ -108,6 +114,8 @@ def main() -> int:
         local_files_only=True,
         strict=True,
     )
+    if args.dtype == "float32":
+        policy = policy.to(dtype=torch.float32)
     policy.eval()
 
     preprocessor, postprocessor = make_pre_post_processors(
@@ -121,6 +129,7 @@ def main() -> int:
     )
     load_seconds = time.perf_counter() - load_started
     print(f"[INFO] model loaded in {load_seconds:.3f}s", flush=True)
+    print(f"[INFO] inference dtype mode: {args.dtype}", flush=True)
 
     run_results = []
     for run_number in range(1, args.runs + 1):
@@ -158,6 +167,7 @@ def main() -> int:
         "model": str(model_dir),
         "task": args.task,
         "seed": args.seed,
+        "dtype": args.dtype,
         "load_seconds": round(load_seconds, 6),
         "peak_rss_gib": round(peak_rss_gib(), 3),
         "runs": run_results,
