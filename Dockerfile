@@ -62,6 +62,13 @@ RUN apt-get update \
         python3-colcon-common-extensions \
     && rm -rf /var/lib/apt/lists/*
 
+# ROS image viewer used for camera bringup/debugging. Keep this late so its
+# Qt dependencies do not invalidate the larger LeRobot/PyTorch layers above.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ros-${ROS_DISTRO}-rqt-image-view \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /workspace
 
 COPY scripts/verify_platform.py /usr/local/bin/verify_platform.py
