@@ -26,6 +26,10 @@ def generate_launch_description() -> LaunchDescription:
         parameters=[str(parameter_file), {"video_device": resolved_device}],
         remappings=[
             ("image_raw", "image_rect_raw"),
+            ("image_raw/compressed", "image_rect_raw/compressed"),
+            ("image_raw/compressedDepth", "image_rect_raw/compressedDepth"),
+            ("image_raw/theora", "image_rect_raw/theora"),
+            ("image_raw/zstd", "image_rect_raw/zstd"),
         ],
     )
 
