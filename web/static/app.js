@@ -43,6 +43,29 @@ const buttons = Object.fromEntries(
 
 let latestStatus = null;
 
+const tabs = [...document.querySelectorAll("[data-tab]")];
+const inferenceView = document.querySelector("#inferenceView");
+const cameraView = document.querySelector("#cameraView");
+const cameraCards = [...document.querySelectorAll("[data-camera]")];
+
+tabs.forEach((tab) => tab.addEventListener("click", () => {
+  tabs.forEach((item) => item.classList.toggle("active", item === tab));
+  inferenceView.classList.toggle("active", tab.dataset.tab === "inference");
+  cameraView.classList.toggle("active", tab.dataset.tab === "camera");
+}));
+
+document.querySelector("#cameraPerformance").append(
+  ...[...document.querySelector(".performance-grid").children].map((card) => card.cloneNode(true)),
+);
+
+function mirrorPerformance() {
+  const target = document.querySelector("#cameraPerformance");
+  target.replaceChildren(
+    ...[...document.querySelector("#inferenceView .performance-grid").children]
+      .map((card) => card.cloneNode(true)),
+  );
+}
+
 function basename(path) {
   return path ? path.split("/").filter(Boolean).at(-1) : "UNLOADED";
 }
@@ -190,6 +213,7 @@ async function refreshSystem() {
     elements.temperatureStatus.textContent = temperature.status;
     elements.temperatureCard.classList.toggle("warm", temperature.current_c >= 70 && temperature.current_c < 80);
     elements.temperatureCard.classList.toggle("hot", temperature.current_c >= 80);
+    mirrorPerformance();
   } catch (error) {
     elements.temperatureStatus.textContent = "UNREACHABLE";
   }
@@ -219,6 +243,52 @@ async function request(action) {
   }
 }
 
+function renderCameras(data) {
+  cameraCards.forEach((card) => {
+    const name = card.dataset.camera;
+    const camera = data.cameras[name];
+    const running = camera.state === "RUNNING";
+    card.querySelector(".camera-state").textContent = camera.state;
+    card.querySelector(".camera-state").classList.toggle("running", running);
+    card.querySelector('[data-camera-action="run"]').disabled = running;
+    card.querySelector('[data-camera-action="stop"]').disabled = !running;
+    const image = card.querySelector("img");
+    if (running && !image.src) image.src = `/api/camera/stream/${name}?t=${Date.now()}`;
+    if (!running) image.removeAttribute("src");
+    card.querySelector(".camera-message").textContent = camera.error
+      ? camera.error
+      : running ? `Running · PID ${camera.pid}` : "Camera is stopped.";
+  });
+}
+
+async function refreshCameras() {
+  try {
+    const response = await fetch("/api/cameras", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    renderCameras(await response.json());
+  } catch (error) {
+    cameraCards.forEach((card) => { card.querySelector(".camera-message").textContent = error.message; });
+  }
+}
+
+cameraCards.forEach((card) => {
+  card.querySelectorAll("[data-camera-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const name = card.dataset.camera;
+      const action = button.dataset.cameraAction;
+      card.querySelector(".camera-message").textContent = `Sending ${action} request…`;
+      try {
+        const response = await fetch(`/api/camera/${name}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`);
+      } catch (error) {
+        card.querySelector(".camera-message").textContent = error.message;
+      }
+      await refreshCameras();
+    });
+  });
+});
+
 Object.entries(buttons).forEach(([action, button]) => {
   button.addEventListener("click", () => request(action));
 });
@@ -227,3 +297,5 @@ refreshStatus().then(refreshModels);
 setInterval(refreshStatus, 2000);
 refreshSystem();
 setInterval(refreshSystem, 2000);
+refreshCameras();
+setInterval(refreshCameras, 2000);

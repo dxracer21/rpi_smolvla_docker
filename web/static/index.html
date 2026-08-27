@@ -24,6 +24,13 @@
         </div>
       </header>
 
+      <nav class="tabs" aria-label="Control views">
+        <button class="tab active" data-tab="inference">Inference</button>
+        <button class="tab" data-tab="camera">Camera</button>
+      </nav>
+
+      <div class="tab-view active" id="inferenceView">
+
       <section class="notice" aria-label="Safety mode">
         <div>
           <p class="notice-label">SAFETY MODE</p>
@@ -147,6 +154,51 @@
           </dl>
         </article>
       </section>
+      </div>
+
+      <div class="tab-view" id="cameraView">
+        <section class="camera-heading">
+          <div><p class="eyebrow">CAMERA BRINGUP</p><h2>Live camera control</h2></div>
+          <span>ROS domain 30 · Zenoh client</span>
+        </section>
+
+        <section class="camera-grid">
+          <article class="panel camera-card" data-camera="realsense">
+            <div class="panel-heading">
+              <div><p class="eyebrow">WRIST CAMERA</p><h2>RealSense</h2></div>
+              <span class="session-state camera-state">STOPPED</span>
+            </div>
+            <div class="camera-preview"><img alt="RealSense live preview" data-camera-stream="realsense" /><span>Start camera to view stream</span></div>
+            <code>/camera/cam_wrist/color/image_rect_raw</code>
+            <div class="button-row camera-actions">
+              <button class="primary" data-camera-action="run">Run</button>
+              <button class="danger" data-camera-action="stop">Stop</button>
+              <button class="secondary" data-camera-action="restart">Restart</button>
+            </div>
+            <p class="action-message camera-message">Camera is stopped.</p>
+          </article>
+
+          <article class="panel camera-card" data-camera="logitech">
+            <div class="panel-heading">
+              <div><p class="eyebrow">FRONT CAMERA</p><h2>Logitech</h2></div>
+              <span class="session-state camera-state">STOPPED</span>
+            </div>
+            <div class="camera-preview"><img alt="Logitech live preview" data-camera-stream="logitech" /><span>Start camera to view stream</span></div>
+            <code>/camera/cam_front/color/image_rect_raw</code>
+            <div class="button-row camera-actions">
+              <button class="primary" data-camera-action="run">Run</button>
+              <button class="danger" data-camera-action="stop">Stop</button>
+              <button class="secondary" data-camera-action="restart">Restart</button>
+            </div>
+            <p class="action-message camera-message">Camera is stopped.</p>
+          </article>
+        </section>
+
+        <section class="performance camera-performance" aria-label="Raspberry Pi camera performance">
+          <div class="section-heading"><p class="eyebrow">PERFORMANCE</p><span>Same live Pi metrics · updates every 2 seconds</span></div>
+          <div class="performance-grid performance-mirror" id="cameraPerformance"></div>
+        </section>
+      </div>
 
       <footer>
         <span>smolvla-dev · port 8000</span>

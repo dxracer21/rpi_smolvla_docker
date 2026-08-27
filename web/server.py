@@ -22,11 +22,14 @@ from backend.inference_service import (  # noqa: E402
     InferenceService,
 )
 from backend.system_metrics import SystemMetrics  # noqa: E402
+from backend.camera_service import CAMERAS, CameraFrames, CameraService  # noqa: E402
 
 HOST = os.getenv("SMOLVLA_UI_HOST", "0.0.0.0")
 PORT = int(os.getenv("SMOLVLA_UI_PORT", "8000"))
 SERVICE = InferenceService()
 METRICS = SystemMetrics()
+CAMERA_SERVICE = CameraService()
+CAMERA_FRAMES = CameraFrames()
 
 
 class SmolVLAHandler(SimpleHTTPRequestHandler):
@@ -74,6 +77,12 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
                 )
             )
             return
+        if path == "/api/cameras":
+            self.send_json(CAMERA_SERVICE.status())
+            return
+        if path.startswith("/api/camera/stream/"):
+            self.stream_camera(path.rsplit("/", 1)[-1])
+            return
         if path == "/":
             self.path = "/index.html"
         super().do_GET()
@@ -90,6 +99,16 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
                 result = SERVICE.stop()
             elif path == "/api/reset":
                 result = SERVICE.reset()
+            elif path.startswith("/api/camera/"):
+                _, _, _, camera, action = path.split("/", 4)
+                if action == "run":
+                    result = CAMERA_SERVICE.start(camera)
+                elif action == "stop":
+                    result = CAMERA_SERVICE.stop(camera)
+                elif action == "restart":
+                    result = CAMERA_SERVICE.restart(camera)
+                else:
+                    raise ValueError(f"Unknown camera action: {action}")
             else:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
@@ -100,6 +119,29 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
             self.send_json({"ok": False, "error": str(error)}, status=HTTPStatus.CONFLICT)
         except (TypeError, ValueError, json.JSONDecodeError) as error:
             self.send_json({"ok": False, "error": f"Invalid request: {error}"}, status=HTTPStatus.BAD_REQUEST)
+        except OSError as error:
+            self.send_json({"ok": False, "error": f"Camera process error: {error}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def stream_camera(self, name: str) -> None:
+        if name not in CAMERAS:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        sequence = 0
+        try:
+            while True:
+                frame = CAMERA_FRAMES.wait(name, sequence)
+                if frame is None:
+                    continue
+                sequence, jpeg = frame
+                self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\n")
+                self.wfile.write(f"Content-Length: {len(jpeg)}\r\n\r\n".encode())
+                self.wfile.write(jpeg + b"\r\n")
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def read_json_body(self) -> dict:
         content_length = int(self.headers.get("Content-Length", "0"))
@@ -131,6 +173,7 @@ def main() -> None:
     finally:
         server.server_close()
         SERVICE.close()
+        CAMERA_SERVICE.close()
 
 
 if __name__ == "__main__":
