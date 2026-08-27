@@ -100,7 +100,8 @@ enter_container() {
     exec docker compose \
         --file "${COMPOSE_FILE}" \
         --project-directory "${SCRIPT_DIR}" \
-        exec "${SERVICE_NAME}" bash
+        exec "${SERVICE_NAME}" bash -lc \
+        'source "/opt/ros/${ROS_DISTRO}/setup.bash" && exec bash'
 }
 
 rebuild_container() {
