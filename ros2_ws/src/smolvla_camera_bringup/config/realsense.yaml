@@ -1,0 +1,43 @@
+camera_name: "cam_wrist"
+camera_namespace: "camera"
+device_type: "d405"
+initial_reset: false
+output: "screen"
+log_level: "info"
+
+# RGB only.
+enable_color: true
+rgb_camera.color_profile: "640,480,30"
+rgb_camera.color_format: "RGB8"
+rgb_camera.enable_auto_exposure: true
+depth_module.color_profile: "640,480,30"
+depth_module.color_format: "RGB8"
+
+# Disable every non-RGB stream.
+enable_depth: false
+enable_infra: false
+enable_infra1: false
+enable_infra2: false
+enable_gyro: false
+enable_accel: false
+enable_motion: false
+enable_rgbd: false
+enable_sync: false
+enable_safety: false
+enable_labeled_point_cloud: false
+enable_occupancy: false
+
+# Disable transforms, diagnostics, point clouds, and image filters.
+publish_tf: false
+tf_publish_rate: 0.0
+diagnostics_period: 0.0
+pointcloud.enable: false
+align_depth.enable: false
+colorizer.enable: false
+decimation_filter.enable: false
+rotation_filter.enable: false
+spatial_filter.enable: false
+temporal_filter.enable: false
+disparity_filter.enable: false
+hole_filling_filter.enable: false
+hdr_merge.enable: false
