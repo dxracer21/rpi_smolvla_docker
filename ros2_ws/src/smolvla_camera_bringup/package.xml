@@ -4,7 +4,7 @@
   <version>0.1.0</version>
   <description>Minimal Logitech and RealSense camera bringup for SmolVLA.</description>
 
-  <maintainer email="lorenjinsooum@localhost">Loren Jinsoo Um</maintainer>
+  <maintainer email="lorenjinsooum@example.com">Loren Jinsoo Um</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
