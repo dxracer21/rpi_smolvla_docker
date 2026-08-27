@@ -8,10 +8,10 @@ log_level: "info"
 
 # RGB only.
 enable_color: true
-rgb_camera.color_profile: "640,480,30"
+rgb_camera.color_profile: "424,240,30"
 rgb_camera.color_format: "RGB8"
 rgb_camera.enable_auto_exposure: true
-depth_module.color_profile: "640,480,30"
+depth_module.color_profile: "424,240,30"
 depth_module.color_format: "RGB8"
 
 # Disable every non-RGB stream.
