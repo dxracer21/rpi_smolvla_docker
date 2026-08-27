@@ -55,6 +55,48 @@
         </article>
       </section>
 
+      <section class="performance" aria-label="Raspberry Pi performance">
+        <div class="section-heading">
+          <p class="eyebrow">PERFORMANCE</p>
+          <span>Live · updates every 2 seconds</span>
+        </div>
+        <div class="performance-grid">
+          <article class="resource-card">
+            <div class="resource-heading"><span>CPU</span><strong id="cpuCapacity">100%</strong></div>
+            <div class="resource-bar" aria-label="CPU utilization">
+              <span class="bar-smolvla" id="cpuSmolvlaBar"></span>
+              <span class="bar-other" id="cpuOtherBar"></span>
+            </div>
+            <div class="resource-details">
+              <span>Pi used <b id="piCpuValue">—</b></span>
+              <span><i class="legend-smolvla"></i>SmolVLA <b id="smolvlaCpuValue">—</b></span>
+              <span><i class="legend-other"></i>Other <b id="otherCpuValue">—</b></span>
+              <span>Run avg <b id="runAverageCpuValue">—</b></span>
+            </div>
+          </article>
+          <article class="resource-card">
+            <div class="resource-heading"><span>MEMORY</span><strong id="memoryCapacity">—</strong></div>
+            <div class="resource-bar" aria-label="Memory utilization">
+              <span class="bar-smolvla" id="memorySmolvlaBar"></span>
+              <span class="bar-other" id="memoryOtherBar"></span>
+            </div>
+            <div class="resource-details">
+              <span>Pi used <b id="piMemoryValue">—</b></span>
+              <span><i class="legend-smolvla"></i>SmolVLA <b id="smolvlaMemoryValue">—</b></span>
+              <span><i class="legend-other"></i>Other <b id="otherMemoryValue">—</b></span>
+              <span>Available <b id="availableMemoryValue">—</b></span>
+            </div>
+          </article>
+          <article class="resource-card temperature-card">
+            <div class="resource-heading"><span>TEMPERATURE</span><strong id="temperatureValue">—</strong></div>
+            <div class="temperature-details">
+              <span>Run peak <b id="temperaturePeak">—</b></span>
+              <span>Status <b id="temperatureStatus">—</b></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section class="workspace">
         <article class="panel control-panel">
           <div class="panel-heading">

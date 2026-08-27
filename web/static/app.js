@@ -17,6 +17,24 @@ const elements = {
   peakRss: document.querySelector("#peakRss"),
   sessionId: document.querySelector("#sessionId"),
   zenohStatus: document.querySelector("#zenohStatus"),
+  piCpuValue: document.querySelector("#piCpuValue"),
+  cpuCapacity: document.querySelector("#cpuCapacity"),
+  smolvlaCpuValue: document.querySelector("#smolvlaCpuValue"),
+  otherCpuValue: document.querySelector("#otherCpuValue"),
+  runAverageCpuValue: document.querySelector("#runAverageCpuValue"),
+  cpuSmolvlaBar: document.querySelector("#cpuSmolvlaBar"),
+  cpuOtherBar: document.querySelector("#cpuOtherBar"),
+  piMemoryValue: document.querySelector("#piMemoryValue"),
+  memoryCapacity: document.querySelector("#memoryCapacity"),
+  smolvlaMemoryValue: document.querySelector("#smolvlaMemoryValue"),
+  otherMemoryValue: document.querySelector("#otherMemoryValue"),
+  availableMemoryValue: document.querySelector("#availableMemoryValue"),
+  memorySmolvlaBar: document.querySelector("#memorySmolvlaBar"),
+  memoryOtherBar: document.querySelector("#memoryOtherBar"),
+  temperatureValue: document.querySelector("#temperatureValue"),
+  temperaturePeak: document.querySelector("#temperaturePeak"),
+  temperatureStatus: document.querySelector("#temperatureStatus"),
+  temperatureCard: document.querySelector(".temperature-card"),
 };
 
 const buttons = Object.fromEntries(
@@ -132,6 +150,51 @@ async function refreshStatus() {
   }
 }
 
+function percent(value) {
+  return value == null ? "—" : `${Number(value).toFixed(1)}%`;
+}
+
+function gib(value) {
+  return value == null ? "—" : `${Number(value).toFixed(2)} GiB`;
+}
+
+async function refreshSystem() {
+  try {
+    const response = await fetch("/api/system", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const piCpu = data.cpu.pi_percent;
+    const smolvlaCpu = Math.min(data.cpu.smolvla_percent ?? 0, piCpu ?? 0);
+    const otherCpu = Math.max((piCpu ?? 0) - smolvlaCpu, 0);
+    elements.piCpuValue.textContent = percent(piCpu);
+    elements.cpuCapacity.textContent = `100% · ${data.cpu.cores} cores`;
+    elements.smolvlaCpuValue.textContent = percent(data.cpu.smolvla_percent);
+    elements.otherCpuValue.textContent = percent(piCpu == null ? null : otherCpu);
+    elements.runAverageCpuValue.textContent = percent(data.cpu.run_average_percent);
+    elements.cpuSmolvlaBar.style.width = `${smolvlaCpu}%`;
+    elements.cpuOtherBar.style.width = `${otherCpu}%`;
+
+    const memory = data.memory;
+    const otherMemoryPercent = Math.max(memory.used_percent - memory.smolvla_percent, 0);
+    elements.memoryCapacity.textContent = gib(memory.total_gib);
+    elements.piMemoryValue.textContent = gib(memory.used_gib);
+    elements.smolvlaMemoryValue.textContent = gib(memory.smolvla_rss_gib);
+    elements.otherMemoryValue.textContent = gib(Math.max(memory.used_gib - memory.smolvla_rss_gib, 0));
+    elements.availableMemoryValue.textContent = gib(memory.available_gib);
+    elements.memorySmolvlaBar.style.width = `${memory.smolvla_percent}%`;
+    elements.memoryOtherBar.style.width = `${otherMemoryPercent}%`;
+
+    const temperature = data.temperature;
+    elements.temperatureValue.textContent = temperature.current_c == null ? "Unavailable" : `${temperature.current_c.toFixed(1)}°C`;
+    elements.temperaturePeak.textContent = temperature.run_peak_c == null ? "—" : `${temperature.run_peak_c.toFixed(1)}°C`;
+    elements.temperatureStatus.textContent = temperature.status;
+    elements.temperatureCard.classList.toggle("warm", temperature.current_c >= 70 && temperature.current_c < 80);
+    elements.temperatureCard.classList.toggle("hot", temperature.current_c >= 80);
+  } catch (error) {
+    elements.temperatureStatus.textContent = "UNREACHABLE";
+  }
+}
+
 async function request(action) {
   const payloads = {
     load: { model: elements.modelSelect.value },
@@ -162,3 +225,5 @@ Object.entries(buttons).forEach(([action, button]) => {
 
 refreshStatus().then(refreshModels);
 setInterval(refreshStatus, 2000);
+refreshSystem();
+setInterval(refreshSystem, 2000);

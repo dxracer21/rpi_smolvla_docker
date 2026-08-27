@@ -57,6 +57,31 @@ h2 { margin-bottom: 0; font-size: 1.25rem; letter-spacing: -0.02em; }
 .accent-card { border-color: rgba(67, 230, 210, 0.45); background: var(--cyan-soft); }
 .accent-card strong { color: var(--cyan); }
 
+.performance { margin-bottom: 18px; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 9px; }
+.section-heading .eyebrow { margin: 0; }
+.section-heading > span { color: #657581; font: 0.68rem ui-monospace, monospace; }
+.performance-grid { display: grid; grid-template-columns: 1fr 1fr 0.72fr; gap: 12px; }
+.resource-card { min-width: 0; padding: 17px 18px; border: 1px solid var(--line); border-radius: 12px; background: rgba(17, 24, 32, 0.88); }
+.resource-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.resource-heading span { color: var(--muted); font-size: 0.72rem; letter-spacing: 0.1em; }
+.resource-heading strong { font: 700 0.92rem ui-monospace, monospace; }
+.resource-bar { display: flex; height: 12px; margin: 15px 0 12px; overflow: hidden; border-radius: 999px; background: #26323c; }
+.resource-bar span { width: 0; transition: width 0.45s ease; }
+.bar-smolvla { background: var(--cyan); }
+.bar-other { background: #577080; }
+.resource-details { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.68rem; }
+.resource-details span { display: inline-flex; align-items: center; gap: 5px; }
+.resource-details b { color: #cbd5da; font-family: ui-monospace, monospace; font-weight: 650; }
+.resource-details i { width: 7px; height: 7px; border-radius: 2px; }
+.legend-smolvla { background: var(--cyan); }
+.legend-other { background: #577080; }
+.temperature-details { display: grid; gap: 11px; margin-top: 17px; }
+.temperature-details span { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.72rem; }
+.temperature-details b { color: #cbd5da; font-family: ui-monospace, monospace; }
+.temperature-card.warm .resource-heading strong, .temperature-card.warm #temperatureStatus { color: var(--amber); }
+.temperature-card.hot .resource-heading strong, .temperature-card.hot #temperatureStatus { color: var(--red); }
+
 .workspace { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 18px; }
 .panel { padding: 24px; border-radius: 14px; }
 .panel-heading { justify-content: space-between; margin-bottom: 24px; }
@@ -85,6 +110,7 @@ footer { justify-content: space-between; padding: 18px 2px 0; color: #657581; fo
 @media (max-width: 820px) {
   .status-grid { grid-template-columns: repeat(2, 1fr); }
   .workspace { grid-template-columns: 1fr; }
+  .performance-grid { grid-template-columns: 1fr; }
   .notice { align-items: flex-start; flex-direction: column; gap: 12px; }
 }
 

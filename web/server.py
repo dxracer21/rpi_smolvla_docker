@@ -21,10 +21,12 @@ from backend.inference_service import (  # noqa: E402
     BackendConflict,
     InferenceService,
 )
+from backend.system_metrics import SystemMetrics  # noqa: E402
 
 HOST = os.getenv("SMOLVLA_UI_HOST", "0.0.0.0")
 PORT = int(os.getenv("SMOLVLA_UI_PORT", "8000"))
 SERVICE = InferenceService()
+METRICS = SystemMetrics()
 
 
 class SmolVLAHandler(SimpleHTTPRequestHandler):
@@ -62,6 +64,15 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
                 if item.is_dir() and (item / "model.safetensors").is_file()
             ] if models_root.is_dir() else []
             self.send_json({"models": models})
+            return
+        if path == "/api/system":
+            status = SERVICE.status()
+            self.send_json(
+                METRICS.snapshot(
+                    inference_active=status["state"] == "INFERENCING",
+                    session_id=status["session_id"],
+                )
+            )
             return
         if path == "/":
             self.path = "/index.html"
