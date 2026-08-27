@@ -6,7 +6,7 @@ models/
 checkpoints/
 __pycache__/
 *.pyc
-build/
-install/
-log/
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
 results/

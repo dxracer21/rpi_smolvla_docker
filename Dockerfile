@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && dpkg -i /tmp/ros2-apt-source.deb \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
+        python3-colcon-common-extensions \
         ros-${ROS_DISTRO}-compressed-image-transport \
         ros-${ROS_DISTRO}-image-transport \
         ros-${ROS_DISTRO}-realsense2-camera \

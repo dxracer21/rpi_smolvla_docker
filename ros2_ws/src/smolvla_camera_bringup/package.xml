@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>smolvla_camera_bringup</name>
+  <version>0.1.0</version>
+  <description>Minimal Logitech and RealSense camera bringup for SmolVLA.</description>
+
+  <maintainer email="lorenjinsooum@localhost">Loren Jinsoo Um</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>usb_cam</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>compressed_image_transport</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

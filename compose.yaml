@@ -13,6 +13,10 @@ services:
     volumes:
       - .:/workspace
       - ./models:/models
+      - ./ros2_ws:/workspace/ros2_ws
+      - ./ros2_ws/build:/workspace/ros2_ws/build
+      - ./ros2_ws/install:/workspace/ros2_ws/install
+      - ./ros2_ws/log:/workspace/ros2_ws/log
       - ${CPU_TEMP_PATH:-/dev/null}:/host_cpu_temp:ro
     environment:
       HF_HOME: /models/huggingface
@@ -43,6 +47,10 @@ services:
     volumes:
       - .:/workspace
       - ./models:/models
+      - ./ros2_ws:/workspace/ros2_ws
+      - ./ros2_ws/build:/workspace/ros2_ws/build
+      - ./ros2_ws/install:/workspace/ros2_ws/install
+      - ./ros2_ws/log:/workspace/ros2_ws/log
       - /dev:/dev
       - /dev/shm:/dev/shm
       - ${CPU_TEMP_PATH:-/dev/null}:/host_cpu_temp:ro
