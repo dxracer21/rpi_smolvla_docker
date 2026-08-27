@@ -12,7 +12,9 @@ export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-30}"
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}"
 export OMY_IP="${OMY_IP:-172.16.101.221}"
 export ZENOH_PORT="${ZENOH_PORT:-7447}"
-export ZENOH_CONFIG_OVERRIDE="${ZENOH_CONFIG_OVERRIDE:-mode=\"client\";connect/endpoints=[\"tcp/${OMY_IP}:${ZENOH_PORT}\"]}"
+if [[ -z "${ZENOH_CONFIG_OVERRIDE:-}" ]]; then
+    export ZENOH_CONFIG_OVERRIDE='mode="client";connect/endpoints=["tcp/'"${OMY_IP}:${ZENOH_PORT}"'"]'
+fi
 
 compose() {
     docker compose --file "${COMPOSE_FILE}" --project-directory "${SCRIPT_DIR}" "$@"
