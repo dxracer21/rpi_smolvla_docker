@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Local dry-run control panel for SmolVLA on Raspberry Pi 5" />
+    <title>SmolVLA · RPi Control</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">OMY · Raspberry Pi 5</p>
+            <h1>SmolVLA Control</h1>
+          </div>
+        </div>
+        <div class="connection" id="connectionBadge">
+          <span class="status-dot"></span>
+          <span id="connectionText">Connecting</span>
+        </div>
+      </header>
+
+      <section class="notice" aria-label="Safety mode">
+        <div>
+          <p class="notice-label">SAFETY MODE</p>
+          <p class="notice-title">Dry run only</p>
+        </div>
+        <p>No ROS / Zenoh command publisher is connected. This panel cannot move the robot.</p>
+      </section>
+
+      <section class="status-grid" aria-label="System status">
+        <article class="status-card">
+          <span>Backend</span>
+          <strong id="backendStatus">Checking</strong>
+          <small>UI service</small>
+        </article>
+        <article class="status-card">
+          <span>Model</span>
+          <strong id="modelStatus">—</strong>
+          <small>task_20_quant_285000</small>
+        </article>
+        <article class="status-card">
+          <span>Robot</span>
+          <strong id="robotStatus">—</strong>
+          <small>Command output disabled</small>
+        </article>
+        <article class="status-card accent-card">
+          <span>Mode</span>
+          <strong id="modeStatus">DRY RUN</strong>
+          <small>Safe by default</small>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <article class="panel control-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">INFERENCE SESSION</p>
+              <h2>Task control</h2>
+            </div>
+            <span class="session-state" id="sessionState">UNLOADED</span>
+          </div>
+
+          <label for="taskInput">Task instruction</label>
+          <textarea id="taskInput" rows="3">Pick up the object</textarea>
+
+          <label for="modelSelect">Model checkpoint</label>
+          <select id="modelSelect">
+            <option value="/models/task_20_quant_285000">task_20_quant_285000</option>
+          </select>
+
+          <div class="button-row">
+            <button class="primary" data-action="load">Load model</button>
+            <button class="primary run" data-action="run">Run inference</button>
+            <button class="danger" data-action="stop">Stop</button>
+            <button class="secondary" data-action="reset">Reset</button>
+          </div>
+          <p class="action-message" id="actionMessage" role="status">
+            UI is ready. Inference controls will activate when the backend is connected.
+          </p>
+        </article>
+
+        <article class="panel output-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">LATEST OUTPUT</p>
+              <h2>Action preview</h2>
+            </div>
+            <span class="finite-badge" id="finiteBadge">NO RESULT</span>
+          </div>
+          <div class="action-values" id="actionValues" aria-label="Seven joint action values">
+            <span>—</span><span>—</span><span>—</span><span>—</span>
+            <span>—</span><span>—</span><span>—</span>
+          </div>
+          <dl class="metrics">
+            <div><dt>Load time</dt><dd id="loadTime">—</dd></div>
+            <div><dt>Inference</dt><dd id="inferenceTime">—</dd></div>
+            <div><dt>Peak RSS</dt><dd id="peakRss">—</dd></div>
+            <div><dt>Session</dt><dd id="sessionId">Not started</dd></div>
+            <div><dt>Zenoh</dt><dd id="zenohStatus">Disabled</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <footer>
+        <span>smolvla-dev · port 8000</span>
+        <span id="lastUpdated">Waiting for backend</span>
+      </footer>
+    </main>
+  </body>
+</html>

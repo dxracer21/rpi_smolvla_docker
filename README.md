@@ -79,3 +79,28 @@ python scripts/run_inference.py \
 ```
 
 이 스크립트는 인터넷에서 모델을 내려받지 않는다. 체크포인트와 tokenizer를 지정한 로컬 모델 폴더에서만 읽으며 저장 당시의 CUDA 설정을 CPU로 덮어쓴다. 현재 입력은 실제 카메라와 로봇 상태가 아닌 모델 설정에 맞춰 생성한 테스트 데이터다.
+
+## Local web UI
+
+개발 컨테이너를 시작하면 dry-run 웹 UI가 함께 실행된다.
+
+```bash
+./container.sh start
+```
+
+Mac Docker에서는 브라우저로 `http://localhost:18000`에 접속한다. Raspberry Pi에 SSH로 접속하는 경우 Mac에서 터널을 연다.
+
+```bash
+ssh -L 18000:localhost:18000 root@RASPBERRY_PI_IP
+```
+
+그 상태에서 Mac 브라우저로 `http://localhost:18000`에 접속한다. UI에서 모델을 한 번 로드한 뒤 더미 입력 추론, Stop, Reset, 결과 확인을 수행할 수 있다. 모든 실행은 `DRY_RUN`이며 ROS/Zenoh 로봇 명령은 연결하지 않는다.
+
+Pi host network에서 실행 중인 Zenoh router에 상태만 발행하려면 프로젝트의 `.env`에 endpoint를 지정한다.
+
+```bash
+ZENOH_ENDPOINT=tcp/host.docker.internal:7447
+ZENOH_KEY_PREFIX=smolvla
+```
+
+발행 key는 `smolvla/status`, `smolvla/session`, `smolvla/result`이다. Zenoh 연결은 선택 기능이며 연결이 끊겨도 UI와 추론은 계속 동작한다.

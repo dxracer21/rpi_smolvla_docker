@@ -126,6 +126,7 @@ def main() -> int:
     for run_number in range(1, args.runs + 1):
         observation = make_dummy_observation(config, args.task, args.seed)
         batch = preprocessor(observation)
+        torch.manual_seed(args.seed)
         policy.reset()  # Force a new action chunk instead of consuming the previous queue.
 
         started = time.perf_counter()

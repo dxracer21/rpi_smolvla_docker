@@ -15,6 +15,8 @@ services:
       - ./models:/models
     environment:
       HF_HOME: /models/huggingface
+      ZENOH_ENDPOINT: ${ZENOH_ENDPOINT:-}
+      ZENOH_KEY_PREFIX: ${ZENOH_KEY_PREFIX:-smolvla}
     working_dir: /workspace
     command: ["python", "/usr/local/bin/verify_lerobot.py"]
 
@@ -30,12 +32,24 @@ services:
     cpus: 4.0
     mem_limit: 8g
     memswap_limit: 8g
+    ports:
+      - "127.0.0.1:18000:8000"
     volumes:
       - .:/workspace
       - ./models:/models
     environment:
       HF_HOME: /models/huggingface
+      ZENOH_ENDPOINT: ${ZENOH_ENDPOINT:-}
+      ZENOH_KEY_PREFIX: ${ZENOH_KEY_PREFIX:-smolvla}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     working_dir: /workspace
-    command: ["sleep", "infinity"]
+    command: ["python", "/workspace/web/server.py"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     stdin_open: true
     tty: true
