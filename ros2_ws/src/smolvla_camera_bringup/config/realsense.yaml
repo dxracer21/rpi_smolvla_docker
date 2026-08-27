@@ -1,5 +1,6 @@
 camera_name: "cam_wrist"
 camera_namespace: "camera"
+serial_no: "335122273204"
 device_type: "d405"
 initial_reset: false
 output: "screen"
