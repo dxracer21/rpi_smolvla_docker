@@ -16,12 +16,15 @@ class SystemMetrics:
         self._session_id: int | None = None
         self._run_cpu_total = 0.0
         self._run_cpu_samples = 0
+        self._run_cpu_peak: float | None = None
+        self._run_memory_peak_gib: float | None = None
         self._run_temperature_peak: float | None = None
 
     def snapshot(self, inference_active: bool = False, session_id: int | None = None) -> dict[str, Any]:
         now = time.monotonic()
         total_ticks, idle_ticks = self._system_cpu_ticks()
         process_ticks = self._process_cpu_ticks()
+        memory = self._memory()
 
         with self._lock:
             pi_cpu = None
@@ -42,6 +45,8 @@ class SystemMetrics:
                 self._session_id = session_id
                 self._run_cpu_total = 0.0
                 self._run_cpu_samples = 0
+                self._run_cpu_peak = None
+                self._run_memory_peak_gib = None
                 self._run_temperature_peak = None
 
             temperature = self._temperature_celsius()
@@ -49,6 +54,12 @@ class SystemMetrics:
                 if process_cpu is not None:
                     self._run_cpu_total += process_cpu
                     self._run_cpu_samples += 1
+                if pi_cpu is not None:
+                    self._run_cpu_peak = max(self._run_cpu_peak or pi_cpu, pi_cpu)
+                self._run_memory_peak_gib = max(
+                    self._run_memory_peak_gib or memory["used_gib"],
+                    memory["used_gib"],
+                )
                 if temperature is not None:
                     self._run_temperature_peak = max(self._run_temperature_peak or temperature, temperature)
 
@@ -58,12 +69,18 @@ class SystemMetrics:
                 else None
             )
 
-        memory = self._memory()
+        memory["run_peak_used_gib"] = self._run_memory_peak_gib
+        memory["run_peak_percent"] = (
+            self._percent(100 * self._run_memory_peak_gib / memory["total_gib"])
+            if self._run_memory_peak_gib is not None
+            else None
+        )
         return {
             "cpu": {
                 "pi_percent": self._percent(pi_cpu),
                 "smolvla_percent": self._percent(process_cpu),
                 "run_average_percent": self._percent(run_cpu_average),
+                "run_peak_percent": self._percent(self._run_cpu_peak),
                 "cores": os.cpu_count() or 1,
             },
             "memory": memory,

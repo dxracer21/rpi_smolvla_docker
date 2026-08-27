@@ -22,6 +22,7 @@ const elements = {
   smolvlaCpuValue: document.querySelector("#smolvlaCpuValue"),
   otherCpuValue: document.querySelector("#otherCpuValue"),
   runAverageCpuValue: document.querySelector("#runAverageCpuValue"),
+  runPeakCpuValue: document.querySelector("#runPeakCpuValue"),
   cpuSmolvlaBar: document.querySelector("#cpuSmolvlaBar"),
   cpuOtherBar: document.querySelector("#cpuOtherBar"),
   piMemoryValue: document.querySelector("#piMemoryValue"),
@@ -29,6 +30,7 @@ const elements = {
   smolvlaMemoryValue: document.querySelector("#smolvlaMemoryValue"),
   otherMemoryValue: document.querySelector("#otherMemoryValue"),
   availableMemoryValue: document.querySelector("#availableMemoryValue"),
+  runPeakMemoryValue: document.querySelector("#runPeakMemoryValue"),
   memorySmolvlaBar: document.querySelector("#memorySmolvlaBar"),
   memoryOtherBar: document.querySelector("#memoryOtherBar"),
   temperatureValue: document.querySelector("#temperatureValue"),
@@ -194,6 +196,7 @@ async function refreshSystem() {
     elements.smolvlaCpuValue.textContent = percent(data.cpu.smolvla_percent);
     elements.otherCpuValue.textContent = percent(piCpu == null ? null : otherCpu);
     elements.runAverageCpuValue.textContent = percent(data.cpu.run_average_percent);
+    elements.runPeakCpuValue.textContent = percent(data.cpu.run_peak_percent);
     elements.cpuSmolvlaBar.style.width = `${smolvlaCpu}%`;
     elements.cpuOtherBar.style.width = `${otherCpu}%`;
 
@@ -204,6 +207,7 @@ async function refreshSystem() {
     elements.smolvlaMemoryValue.textContent = gib(memory.smolvla_rss_gib);
     elements.otherMemoryValue.textContent = gib(Math.max(memory.used_gib - memory.smolvla_rss_gib, 0));
     elements.availableMemoryValue.textContent = gib(memory.available_gib);
+    elements.runPeakMemoryValue.textContent = gib(memory.run_peak_used_gib);
     elements.memorySmolvlaBar.style.width = `${memory.smolvla_percent}%`;
     elements.memoryOtherBar.style.width = `${otherMemoryPercent}%`;
 
