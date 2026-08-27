@@ -23,6 +23,22 @@ def generate_launch_description() -> LaunchDescription:
                 src="/camera/cam_wrist/color/image_raw",
                 dst="/camera/cam_wrist/color/image_rect_raw",
             ),
+            SetRemap(
+                src="/camera/cam_wrist/color/image_raw/compressed",
+                dst="/camera/cam_wrist/color/image_rect_raw/compressed",
+            ),
+            SetRemap(
+                src="/camera/cam_wrist/color/image_raw/compressedDepth",
+                dst="/camera/cam_wrist/color/image_rect_raw/compressedDepth",
+            ),
+            SetRemap(
+                src="/camera/cam_wrist/color/image_raw/theora",
+                dst="/camera/cam_wrist/color/image_rect_raw/theora",
+            ),
+            SetRemap(
+                src="/camera/cam_wrist/color/image_raw/zstd",
+                dst="/camera/cam_wrist/color/image_rect_raw/zstd",
+            ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(str(realsense_launch)),
                 launch_arguments={
