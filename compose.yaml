@@ -16,6 +16,9 @@ services:
       - ${CPU_TEMP_PATH:-/dev/null}:/host_cpu_temp:ro
     environment:
       HF_HOME: /models/huggingface
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-30}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
+      ZENOH_CONFIG_OVERRIDE: '${ZENOH_CONFIG_OVERRIDE:-mode="client";connect/endpoints=["tcp/172.16.101.221:7447"]}'
       ZENOH_ENDPOINT: ${ZENOH_ENDPOINT:-}
       ZENOH_KEY_PREFIX: ${ZENOH_KEY_PREFIX:-smolvla}
     working_dir: /workspace
@@ -41,6 +44,9 @@ services:
       - ${CPU_TEMP_PATH:-/dev/null}:/host_cpu_temp:ro
     environment:
       HF_HOME: /models/huggingface
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-30}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}
+      ZENOH_CONFIG_OVERRIDE: '${ZENOH_CONFIG_OVERRIDE:-mode="client";connect/endpoints=["tcp/172.16.101.221:7447"]}'
       ZENOH_ENDPOINT: ${ZENOH_ENDPOINT:-}
       ZENOH_KEY_PREFIX: ${ZENOH_KEY_PREFIX:-smolvla}
     extra_hosts:

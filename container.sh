@@ -7,6 +7,13 @@ readonly COMPOSE_FILE="${SCRIPT_DIR}/compose.yaml"
 readonly SERVICE_NAME="smolvla-dev"
 readonly CONTAINER_NAME="smolvla-dev"
 
+# Default ROS 2 / Zenoh settings. Values already exported by the user win.
+export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-30}"
+export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}"
+export OMY_IP="${OMY_IP:-172.16.101.221}"
+export ZENOH_PORT="${ZENOH_PORT:-7447}"
+export ZENOH_CONFIG_OVERRIDE="${ZENOH_CONFIG_OVERRIDE:-mode=\"client\";connect/endpoints=[\"tcp/${OMY_IP}:${ZENOH_PORT}\"]}"
+
 compose() {
     docker compose --file "${COMPOSE_FILE}" --project-directory "${SCRIPT_DIR}" "$@"
 }
@@ -29,6 +36,11 @@ Names:
   service:   ${SERVICE_NAME}
   container: ${CONTAINER_NAME}
   image:     smolvla_rpi:dev
+
+ROS 2 / Zenoh defaults:
+  ROS_DOMAIN_ID:         ${ROS_DOMAIN_ID}
+  RMW_IMPLEMENTATION:    ${RMW_IMPLEMENTATION}
+  ZENOH_CONFIG_OVERRIDE: ${ZENOH_CONFIG_OVERRIDE}
 EOF
 }
 
