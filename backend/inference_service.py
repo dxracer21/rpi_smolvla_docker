@@ -31,7 +31,7 @@ class BackendBadRequest(BackendError):
 
 
 class InferenceService:
-    def __init__(self) -> None:
+    def __init__(self, camera_frames: Any | None = None) -> None:
         self._lock = threading.RLock()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="smolvla-worker")
         self._generation = 0
@@ -47,6 +47,7 @@ class InferenceService:
         self._config: Any = None
         self._preprocessor: Any = None
         self._postprocessor: Any = None
+        self._camera_frames = camera_frames
         self._zenoh = ZenohStatusPublisher(
             endpoint=os.getenv("ZENOH_ENDPOINT", ""),
             key_prefix=os.getenv("ZENOH_KEY_PREFIX", "smolvla"),
@@ -202,11 +203,10 @@ class InferenceService:
     def _inference_worker(self, generation: int, session_id: int, task: str, seed: int) -> None:
         try:
             import torch
-            from scripts.run_inference import make_dummy_observation
 
             torch.manual_seed(seed)
             self._policy.reset()
-            observation = make_dummy_observation(self._config, task, seed)
+            observation, camera_metadata = self._make_live_observation(task)
             batch = self._preprocessor(observation)
             started = time.perf_counter()
             with torch.inference_mode():
@@ -224,6 +224,8 @@ class InferenceService:
                 "action": action_cpu.tolist(),
                 "finite": finite,
                 "peak_rss_gib": round(self._peak_rss_gib(), 3),
+                "observation_source": "live_compressed_cameras",
+                "camera_frames": camera_metadata,
             }
             with self._lock:
                 self._active_worker = False
@@ -249,6 +251,54 @@ class InferenceService:
                     self._finish_cancelled_locked()
                 snapshot = self._snapshot_locked()
         self._zenoh.publish(snapshot)
+
+    def _make_live_observation(self, task: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        if self._camera_frames is None:
+            raise RuntimeError("Live camera frame source is not configured")
+
+        import numpy as np
+        import torch
+        from PIL import Image
+        from io import BytesIO
+
+        camera_by_feature = {
+            "observation.images.rgb.cam_front": "logitech",
+            "observation.images.rgb.cam_wrist": "realsense",
+        }
+        observation: dict[str, Any] = {"task": task}
+        metadata: dict[str, Any] = {}
+
+        for feature_name, feature in self._config.input_features.items():
+            shape = tuple(feature.shape)
+            if "VISUAL" not in str(feature.type).upper():
+                observation[feature_name] = torch.zeros(shape, dtype=torch.float32)
+                continue
+
+            camera_name = camera_by_feature.get(feature_name)
+            if camera_name is None:
+                raise RuntimeError(f"No camera mapping configured for model feature {feature_name}")
+            jpeg, age = self._camera_frames.latest(camera_name)
+            with Image.open(BytesIO(jpeg)) as image:
+                rgb = image.convert("RGB")
+                actual_size = (rgb.height, rgb.width)
+                expected_size = (shape[-2], shape[-1])
+                if actual_size != expected_size:
+                    raise RuntimeError(
+                        f"{camera_name} frame is {rgb.width}x{rgb.height}; "
+                        f"model expects {expected_size[1]}x{expected_size[0]}"
+                    )
+                array = np.asarray(rgb, dtype=np.uint8).copy()
+            observation[feature_name] = (
+                torch.from_numpy(array).permute(2, 0, 1).to(dtype=torch.float32).div_(255.0)
+            )
+            metadata[camera_name] = {
+                "topic": self._camera_frames.topic(camera_name),
+                "width": actual_size[1],
+                "height": actual_size[0],
+                "age_seconds": round(age, 4),
+            }
+
+        return observation, metadata
 
     def _finish_cancelled_locked(self) -> None:
         if self._policy is not None:

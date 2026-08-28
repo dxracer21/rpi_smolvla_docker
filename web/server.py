@@ -26,10 +26,10 @@ from backend.camera_service import CAMERAS, CameraFrames, CameraService  # noqa:
 
 HOST = os.getenv("SMOLVLA_UI_HOST", "0.0.0.0")
 PORT = int(os.getenv("SMOLVLA_UI_PORT", "8000"))
-SERVICE = InferenceService()
 METRICS = SystemMetrics()
 CAMERA_SERVICE = CameraService()
 CAMERA_FRAMES = CameraFrames()
+SERVICE = InferenceService(camera_frames=CAMERA_FRAMES)
 
 
 class SmolVLAHandler(SimpleHTTPRequestHandler):

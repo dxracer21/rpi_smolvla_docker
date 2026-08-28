@@ -125,7 +125,7 @@ class CameraFrames:
 
     def __init__(self) -> None:
         self._condition = threading.Condition()
-        self._frames: dict[str, tuple[int, bytes]] = {}
+        self._frames: dict[str, tuple[int, float, bytes]] = {}
         self._started = False
 
     def start(self) -> None:
@@ -135,6 +135,12 @@ class CameraFrames:
             self._started = True
         threading.Thread(target=self._spin, name="camera-preview-ros", daemon=True).start()
 
+    @staticmethod
+    def topic(name: str) -> str:
+        if name not in CAMERAS:
+            raise ValueError(f"Unknown camera: {name}")
+        return str(CAMERAS[name]["topic"])
+
     def wait(self, name: str, sequence: int, timeout: float = 3.0) -> tuple[int, bytes] | None:
         self.start()
         deadline = time.monotonic() + timeout
@@ -142,9 +148,28 @@ class CameraFrames:
             while time.monotonic() < deadline:
                 frame = self._frames.get(name)
                 if frame and frame[0] > sequence:
-                    return frame
+                    return frame[0], frame[2]
                 self._condition.wait(deadline - time.monotonic())
         return None
+
+    def latest(self, name: str, max_age: float = 2.0, timeout: float = 5.0) -> tuple[bytes, float]:
+        """Return a recent JPEG and its age, waiting briefly for a live frame."""
+        if name not in CAMERAS:
+            raise ValueError(f"Unknown camera: {name}")
+        self.start()
+        deadline = time.monotonic() + timeout
+        with self._condition:
+            while True:
+                frame = self._frames.get(name)
+                if frame:
+                    age = time.monotonic() - frame[1]
+                    if age <= max_age:
+                        return frame[2], age
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    topic = CAMERAS[name]["topic"]
+                    raise TimeoutError(f"No fresh {name} frame received from {topic}")
+                self._condition.wait(remaining)
 
     def _spin(self) -> None:
         import rclpy
@@ -171,6 +196,6 @@ class CameraFrames:
         if not jpeg:
             return
         with self._condition:
-            sequence = self._frames.get(name, (0, b""))[0] + 1
-            self._frames[name] = (sequence, jpeg)
+            sequence = self._frames.get(name, (0, 0.0, b""))[0] + 1
+            self._frames[name] = (sequence, time.monotonic(), jpeg)
             self._condition.notify_all()
