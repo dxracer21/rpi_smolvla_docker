@@ -49,7 +49,7 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
                 {
                     "ok": True,
                     "service": "smolvla-ui",
-                    "mode": "DRY_RUN",
+                    "mode": SERVICE.status()["mode"],
                     "backend": "CONNECTED",
                     "model": SERVICE.status()["state"],
                     "robot": "DISCONNECTED",
@@ -94,7 +94,11 @@ class SmolVLAHandler(SimpleHTTPRequestHandler):
             if path == "/api/load":
                 result = SERVICE.load_model(str(payload.get("model", "")))
             elif path == "/api/run":
-                result = SERVICE.run_inference(str(payload.get("task", "")), int(payload.get("seed", 0)))
+                result = SERVICE.run_inference(
+                    str(payload.get("task", "")),
+                    int(payload.get("seed", 0)),
+                    str(payload.get("mode", "DRY_RUN")),
+                )
             elif path == "/api/stop":
                 result = SERVICE.stop()
             elif path == "/api/reset":

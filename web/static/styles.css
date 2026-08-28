@@ -51,6 +51,14 @@ h2 { margin-bottom: 0; font-size: 1.25rem; letter-spacing: -0.02em; }
 .notice-label { color: var(--amber); font: 700 0.68rem ui-monospace, monospace; letter-spacing: 0.14em; }
 .notice-title { margin-top: 4px !important; font-weight: 700; }
 .notice > p { max-width: 580px; color: #c1cbd1; line-height: 1.5; }
+.mode-control { display: flex; align-items: center; gap: 10px; color: #c1cbd1; font: 700 0.72rem ui-monospace, monospace; white-space: nowrap; }
+.mode-switch { position: relative; display: inline-block; width: 54px; height: 28px; margin: 0; }
+.mode-switch input { width: 0; height: 0; opacity: 0; }
+.mode-slider { position: absolute; inset: 0; cursor: pointer; border: 1px solid #52616d; border-radius: 999px; background: #222e38; transition: 0.2s ease; }
+.mode-slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; border-radius: 50%; background: var(--amber); transition: 0.2s ease; }
+.mode-switch input:checked + .mode-slider { border-color: rgba(67, 230, 210, 0.7); background: var(--cyan-soft); }
+.mode-switch input:checked + .mode-slider::before { transform: translateX(26px); background: var(--cyan); }
+.mode-switch input:disabled + .mode-slider { cursor: not-allowed; opacity: 0.45; }
 
 .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
 .status-card, .panel { border: 1px solid var(--line); background: rgba(17, 24, 32, 0.88); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18); }

@@ -36,7 +36,15 @@
           <p class="notice-label">SAFETY MODE</p>
           <p class="notice-title">Dry run only</p>
         </div>
-        <p>Inference uses live compressed camera frames. No command publisher is connected, so this panel cannot move the robot.</p>
+        <div class="mode-control">
+          <span>Dry Run</span>
+          <label class="mode-switch" for="modeToggle">
+            <input id="modeToggle" type="checkbox" />
+            <span class="mode-slider"></span>
+          </label>
+          <span>Real Robot</span>
+        </div>
+        <p id="modeDescription">Live cameras + zero joint state. Inference only; command output is disabled.</p>
       </section>
 
       <section class="status-grid" aria-label="System status">

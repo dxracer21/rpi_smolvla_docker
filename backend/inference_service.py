@@ -43,6 +43,7 @@ class InferenceService:
         self._result: dict[str, Any] | None = None
         self._error: str | None = None
         self._load_seconds: float | None = None
+        self._mode = "DRY_RUN"
         self._policy: Any = None
         self._config: Any = None
         self._preprocessor: Any = None
@@ -88,12 +89,15 @@ class InferenceService:
         self._zenoh.publish(snapshot)
         return snapshot
 
-    def run_inference(self, task: str, seed: int = 0) -> dict[str, Any]:
+    def run_inference(self, task: str, seed: int = 0, mode: str = "DRY_RUN") -> dict[str, Any]:
         task = task.strip()
         if not task:
             raise BackendBadRequest("Task instruction must not be empty")
         if len(task) > 500:
             raise BackendBadRequest("Task instruction is too long")
+        mode = mode.strip().upper()
+        if mode not in {"DRY_RUN", "REAL_ROBOT"}:
+            raise BackendBadRequest("Mode must be DRY_RUN or REAL_ROBOT")
         with self._lock:
             if self._policy is None:
                 raise BackendConflict("Load the model before running inference")
@@ -106,10 +110,11 @@ class InferenceService:
             self._active_worker = True
             self._state = "INFERENCING"
             self._task = task
+            self._mode = mode
             self._result = None
             self._error = None
             snapshot = self._snapshot_locked()
-            self._executor.submit(self._inference_worker, generation, session_id, task, seed)
+            self._executor.submit(self._inference_worker, generation, session_id, task, seed, mode)
         self._zenoh.publish(snapshot)
         return snapshot
 
@@ -200,13 +205,15 @@ class InferenceService:
                 snapshot = self._snapshot_locked()
         self._zenoh.publish(snapshot)
 
-    def _inference_worker(self, generation: int, session_id: int, task: str, seed: int) -> None:
+    def _inference_worker(
+        self, generation: int, session_id: int, task: str, seed: int, mode: str
+    ) -> None:
         try:
             import torch
 
             torch.manual_seed(seed)
             self._policy.reset()
-            observation, camera_metadata = self._make_live_observation(task)
+            observation, observation_metadata = self._make_live_observation(task, mode)
             batch = self._preprocessor(observation)
             started = time.perf_counter()
             with torch.inference_mode():
@@ -224,8 +231,9 @@ class InferenceService:
                 "action": action_cpu.tolist(),
                 "finite": finite,
                 "peak_rss_gib": round(self._peak_rss_gib(), 3),
-                "observation_source": "live_compressed_cameras",
-                "camera_frames": camera_metadata,
+                "observation_source": observation_metadata["source"],
+                "camera_frames": observation_metadata["cameras"],
+                "joint_state": observation_metadata["joint_state"],
             }
             with self._lock:
                 self._active_worker = False
@@ -252,7 +260,9 @@ class InferenceService:
                 snapshot = self._snapshot_locked()
         self._zenoh.publish(snapshot)
 
-    def _make_live_observation(self, task: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _make_live_observation(
+        self, task: str, mode: str
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         if self._camera_frames is None:
             raise RuntimeError("Live camera frame source is not configured")
 
@@ -266,12 +276,32 @@ class InferenceService:
             "observation.images.rgb.cam_wrist": "realsense",
         }
         observation: dict[str, Any] = {"task": task}
-        metadata: dict[str, Any] = {}
+        camera_metadata: dict[str, Any] = {}
+        joint_metadata: dict[str, Any]
+
+        if mode == "REAL_ROBOT":
+            joint_positions, joint_age = self._camera_frames.latest_joint_positions()
+            joint_tensor = torch.tensor(joint_positions, dtype=torch.float32)
+            joint_metadata = {
+                "source": "/joint_states",
+                "positions": joint_positions,
+                "age_seconds": round(joint_age, 4),
+            }
+        else:
+            joint_tensor = torch.zeros(7, dtype=torch.float32)
+            joint_metadata = {
+                "source": "zeros",
+                "positions": joint_tensor.tolist(),
+                "age_seconds": None,
+            }
 
         for feature_name, feature in self._config.input_features.items():
             shape = tuple(feature.shape)
             if "VISUAL" not in str(feature.type).upper():
-                observation[feature_name] = torch.zeros(shape, dtype=torch.float32)
+                if feature_name == "observation.state" and shape == (7,):
+                    observation[feature_name] = joint_tensor
+                else:
+                    observation[feature_name] = torch.zeros(shape, dtype=torch.float32)
                 continue
 
             camera_name = camera_by_feature.get(feature_name)
@@ -291,14 +321,22 @@ class InferenceService:
             observation[feature_name] = (
                 torch.from_numpy(array).permute(2, 0, 1).to(dtype=torch.float32).div_(255.0)
             )
-            metadata[camera_name] = {
+            camera_metadata[camera_name] = {
                 "topic": self._camera_frames.topic(camera_name),
                 "width": actual_size[1],
                 "height": actual_size[0],
                 "age_seconds": round(age, 4),
             }
 
-        return observation, metadata
+        return observation, {
+            "source": (
+                "live_compressed_cameras_and_joint_states"
+                if mode == "REAL_ROBOT"
+                else "live_compressed_cameras_with_zero_state"
+            ),
+            "cameras": camera_metadata,
+            "joint_state": joint_metadata,
+        }
 
     def _finish_cancelled_locked(self) -> None:
         if self._policy is not None:
@@ -316,8 +354,8 @@ class InferenceService:
             "ok": self._state != "ERROR",
             "service": "smolvla-inference",
             "state": self._state,
-            "mode": "DRY_RUN",
-            "robot": "DISCONNECTED",
+            "mode": self._mode,
+            "robot": "OBSERVATION_ONLY" if self._mode == "REAL_ROBOT" else "DISCONNECTED",
             "robot_output_enabled": False,
             "model": self._model_path,
             "task": self._task,

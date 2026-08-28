@@ -25,6 +25,16 @@ CAMERAS = {
     },
 }
 
+JOINT_NAMES = (
+    "joint1",
+    "joint2",
+    "joint3",
+    "joint4",
+    "joint5",
+    "joint6",
+    "rh_r1_joint",
+)
+
 
 @dataclass
 class CameraProcess:
@@ -126,6 +136,7 @@ class CameraFrames:
     def __init__(self) -> None:
         self._condition = threading.Condition()
         self._frames: dict[str, tuple[int, float, bytes]] = {}
+        self._joint_state: tuple[float, dict[str, float]] | None = None
         self._started = False
 
     def start(self) -> None:
@@ -171,10 +182,30 @@ class CameraFrames:
                     raise TimeoutError(f"No fresh {name} frame received from {topic}")
                 self._condition.wait(remaining)
 
+    def latest_joint_positions(
+        self, max_age: float = 1.0, timeout: float = 5.0
+    ) -> tuple[list[float], float]:
+        """Return positions ordered exactly as the trained seven-joint state."""
+        self.start()
+        deadline = time.monotonic() + timeout
+        with self._condition:
+            while True:
+                if self._joint_state:
+                    received_at, positions = self._joint_state
+                    age = time.monotonic() - received_at
+                    missing = [name for name in JOINT_NAMES if name not in positions]
+                    if age <= max_age and not missing:
+                        return [positions[name] for name in JOINT_NAMES], age
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("No fresh complete /joint_states message received")
+                self._condition.wait(remaining)
+
     def _spin(self) -> None:
         import rclpy
         from rclpy.node import Node
         from sensor_msgs.msg import CompressedImage
+        from sensor_msgs.msg import JointState
 
         rclpy.init(args=None)
         node = Node("smolvla_camera_web_preview")
@@ -185,6 +216,7 @@ class CameraFrames:
                 lambda message, camera=name: self._receive(camera, message),
                 1,
             )
+        node.create_subscription(JointState, "/joint_states", self._receive_joint_state, 10)
         try:
             rclpy.spin(node)
         finally:
@@ -198,4 +230,13 @@ class CameraFrames:
         with self._condition:
             sequence = self._frames.get(name, (0, 0.0, b""))[0] + 1
             self._frames[name] = (sequence, time.monotonic(), jpeg)
+            self._condition.notify_all()
+
+    def _receive_joint_state(self, message: Any) -> None:
+        positions = {
+            name: float(position)
+            for name, position in zip(message.name, message.position, strict=False)
+        }
+        with self._condition:
+            self._joint_state = (time.monotonic(), positions)
             self._condition.notify_all()

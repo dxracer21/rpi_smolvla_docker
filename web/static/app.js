@@ -37,6 +37,8 @@ const elements = {
   temperaturePeak: document.querySelector("#temperaturePeak"),
   temperatureStatus: document.querySelector("#temperatureStatus"),
   temperatureCard: document.querySelector(".temperature-card"),
+  modeToggle: document.querySelector("#modeToggle"),
+  modeDescription: document.querySelector("#modeDescription"),
 };
 
 const buttons = Object.fromEntries(
@@ -44,6 +46,19 @@ const buttons = Object.fromEntries(
 );
 
 let latestStatus = null;
+
+function selectedMode() {
+  return elements.modeToggle.checked ? "REAL_ROBOT" : "DRY_RUN";
+}
+
+function renderModeDescription() {
+  elements.modeDescription.textContent = elements.modeToggle.checked
+    ? "Live cameras + live /joint_states. Inference only; command output remains disabled."
+    : "Live cameras + zero joint state. Inference only; command output is disabled.";
+}
+
+elements.modeToggle.addEventListener("change", renderModeDescription);
+renderModeDescription();
 
 const tabs = [...document.querySelectorAll("[data-tab]")];
 const inferenceView = document.querySelector("#inferenceView");
@@ -88,6 +103,7 @@ function renderStatus(data) {
   elements.modelStatus.textContent = basename(data.model);
   elements.robotStatus.textContent = data.robot;
   elements.modeStatus.textContent = data.mode.replace("_", " ");
+  elements.modeToggle.disabled = busy;
   elements.sessionState.textContent = data.state;
   elements.loadTime.textContent = seconds(data.load_seconds);
   elements.inferenceTime.textContent = seconds(result?.seconds);
@@ -226,7 +242,7 @@ async function refreshSystem() {
 async function request(action) {
   const payloads = {
     load: { model: elements.modelSelect.value },
-    run: { task: elements.taskInput.value, seed: 0 },
+    run: { task: elements.taskInput.value, seed: 0, mode: selectedMode() },
     stop: {},
     reset: {},
   };
