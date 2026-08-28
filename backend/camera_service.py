@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import os
 import signal
 import subprocess
@@ -17,12 +16,12 @@ CAMERAS = {
     "realsense": {
         "label": "RealSense",
         "launch": "realsence_test.py",
-        "topic": "/camera/cam_wrist/color/image_rect_raw",
+        "topic": "/camera/cam_wrist/color/image_rect_raw/compressed",
     },
     "logitech": {
         "label": "Logitech",
         "launch": "logitech_test.py",
-        "topic": "/camera/cam_front/color/image_rect_raw",
+        "topic": "/camera/cam_front/color/image_rect_raw/compressed",
     },
 }
 
@@ -122,7 +121,7 @@ class CameraService:
 
 
 class CameraFrames:
-    """Lazy ROS subscriptions converted to JPEG for an MJPEG browser stream."""
+    """Forward ROS JPEG payloads directly into an MJPEG browser stream."""
 
     def __init__(self) -> None:
         self._condition = threading.Condition()
@@ -150,13 +149,13 @@ class CameraFrames:
     def _spin(self) -> None:
         import rclpy
         from rclpy.node import Node
-        from sensor_msgs.msg import Image
+        from sensor_msgs.msg import CompressedImage
 
         rclpy.init(args=None)
         node = Node("smolvla_camera_web_preview")
         for name, config in CAMERAS.items():
             node.create_subscription(
-                Image,
+                CompressedImage,
                 config["topic"],
                 lambda message, camera=name: self._receive(camera, message),
                 1,
@@ -168,25 +167,10 @@ class CameraFrames:
             rclpy.shutdown()
 
     def _receive(self, name: str, message: Any) -> None:
-        try:
-            import numpy as np
-            from PIL import Image as PilImage
-
-            channels = 3 if message.encoding.lower() in {"rgb8", "bgr8"} else 4
-            image = np.frombuffer(message.data, dtype=np.uint8).reshape(message.height, message.step)
-            image = image[:, : message.width * channels].reshape(message.height, message.width, channels)
-            encoding = message.encoding.lower()
-            if encoding == "bgr8":
-                image = image[:, :, ::-1]
-            elif encoding in {"bgra8", "rgba8"}:
-                if encoding == "bgra8":
-                    image = image[:, :, [2, 1, 0, 3]]
-                image = image[:, :, :3]
-            output = io.BytesIO()
-            PilImage.fromarray(image).save(output, format="JPEG", quality=76)
-            with self._condition:
-                sequence = self._frames.get(name, (0, b""))[0] + 1
-                self._frames[name] = (sequence, output.getvalue())
-                self._condition.notify_all()
-        except Exception:
+        jpeg = bytes(message.data)
+        if not jpeg:
             return
+        with self._condition:
+            sequence = self._frames.get(name, (0, b""))[0] + 1
+            self._frames[name] = (sequence, jpeg)
+            self._condition.notify_all()
