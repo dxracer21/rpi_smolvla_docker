@@ -224,17 +224,6 @@ class InferenceService:
             finite = bool(torch.isfinite(action_cpu).all().item())
             if not finite:
                 raise RuntimeError("Inference returned NaN or infinity")
-            result = {
-                "session_id": session_id,
-                "seconds": round(inference_seconds, 6),
-                "action_shape": list(action_cpu.shape),
-                "action": action_cpu.tolist(),
-                "finite": finite,
-                "peak_rss_gib": round(self._peak_rss_gib(), 3),
-                "observation_source": observation_metadata["source"],
-                "camera_frames": observation_metadata["cameras"],
-                "joint_state": observation_metadata["joint_state"],
-            }
             with self._lock:
                 self._active_worker = False
                 self._policy.reset()
@@ -242,6 +231,24 @@ class InferenceService:
                     self._finish_cancelled_locked()
                     snapshot = self._snapshot_locked()
                 else:
+                    robot_command = {"published": False, "reason": "DRY_RUN"}
+                    if mode == "REAL_ROBOT":
+                        robot_command = self._camera_frames.publish_safety_limited_action(
+                            action_cpu[0].tolist(),
+                            observation_metadata["joint_state"]["positions"],
+                        )
+                    result = {
+                        "session_id": session_id,
+                        "seconds": round(inference_seconds, 6),
+                        "action_shape": list(action_cpu.shape),
+                        "action": action_cpu.tolist(),
+                        "finite": finite,
+                        "peak_rss_gib": round(self._peak_rss_gib(), 3),
+                        "observation_source": observation_metadata["source"],
+                        "camera_frames": observation_metadata["cameras"],
+                        "joint_state": observation_metadata["joint_state"],
+                        "robot_command": robot_command,
+                    }
                     self._result = result
                     self._state = "RESULT_READY"
                     self._error = None
@@ -355,8 +362,8 @@ class InferenceService:
             "service": "smolvla-inference",
             "state": self._state,
             "mode": self._mode,
-            "robot": "OBSERVATION_ONLY" if self._mode == "REAL_ROBOT" else "DISCONNECTED",
-            "robot_output_enabled": False,
+            "robot": "ARMED_LIMITED" if self._mode == "REAL_ROBOT" else "DISCONNECTED",
+            "robot_output_enabled": self._mode == "REAL_ROBOT",
             "model": self._model_path,
             "task": self._task,
             "session_id": self._session_id,

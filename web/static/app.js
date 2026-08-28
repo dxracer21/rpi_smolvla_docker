@@ -53,7 +53,7 @@ function selectedMode() {
 
 function renderModeDescription() {
   elements.modeDescription.textContent = elements.modeToggle.checked
-    ? "Live cameras + live /joint_states. Inference only; command output remains disabled."
+    ? "ARMED: live observations + one safety-limited robot trajectory after inference."
     : "Live cameras + zero joint state. Inference only; command output is disabled.";
 }
 

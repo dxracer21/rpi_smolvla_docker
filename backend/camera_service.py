@@ -35,6 +35,20 @@ JOINT_NAMES = (
     "rh_r1_joint",
 )
 
+JOINT_LIMITS = (
+    (-6.28318530718, 6.28318530718),
+    (-6.28318530718, 6.28318530718),
+    (-6.28318530718, 6.28318530718),
+    (-6.28318530718, 6.28318530718),
+    (-6.28318530718, 6.28318530718),
+    (-6.28318530718, 6.28318530718),
+    (0.0, 1.13514578304),
+)
+COMMAND_TOPIC = "/leader/joint_trajectory"
+MAX_COMMAND_DELTA_RAD = 0.08
+MAX_OBSERVATION_DRIFT_RAD = 0.05
+COMMAND_DURATION_SECONDS = 2
+
 
 @dataclass
 class CameraProcess:
@@ -137,6 +151,7 @@ class CameraFrames:
         self._condition = threading.Condition()
         self._frames: dict[str, tuple[int, float, bytes]] = {}
         self._joint_state: tuple[float, dict[str, float]] | None = None
+        self._trajectory_publisher: Any = None
         self._started = False
 
     def start(self) -> None:
@@ -201,11 +216,61 @@ class CameraFrames:
                     raise TimeoutError("No fresh complete /joint_states message received")
                 self._condition.wait(remaining)
 
+    def publish_safety_limited_action(
+        self, requested: list[float], observed: list[float]
+    ) -> dict[str, Any]:
+        """Publish one bounded trajectory after validating fresh robot state."""
+        import math
+        from builtin_interfaces.msg import Duration
+        from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+
+        if len(requested) != len(JOINT_NAMES) or not all(math.isfinite(v) for v in requested):
+            raise RuntimeError("Model action must contain seven finite joint values")
+        current, age = self.latest_joint_positions(max_age=0.5)
+        drift = [abs(now - before) for now, before in zip(current, observed, strict=True)]
+        if max(drift) > MAX_OBSERVATION_DRIFT_RAD:
+            raise RuntimeError(
+                f"Robot moved during inference (max drift {max(drift):.4f} rad); command cancelled"
+            )
+
+        commanded: list[float] = []
+        for target, now, (lower, upper) in zip(requested, current, JOINT_LIMITS, strict=True):
+            limited_target = min(max(float(target), lower), upper)
+            delta = min(max(limited_target - now, -MAX_COMMAND_DELTA_RAD), MAX_COMMAND_DELTA_RAD)
+            commanded.append(now + delta)
+
+        with self._condition:
+            publisher = self._trajectory_publisher
+        if publisher is None:
+            raise RuntimeError("Robot trajectory publisher is not ready")
+        if publisher.get_subscription_count() < 1:
+            raise RuntimeError(f"No controller subscribes to {COMMAND_TOPIC}")
+
+        message = JointTrajectory()
+        message.joint_names = list(JOINT_NAMES)
+        point = JointTrajectoryPoint()
+        point.positions = commanded
+        point.time_from_start = Duration(sec=COMMAND_DURATION_SECONDS)
+        message.points = [point]
+        publisher.publish(message)
+        return {
+            "published": True,
+            "topic": COMMAND_TOPIC,
+            "requested_positions": [float(value) for value in requested],
+            "current_positions": current,
+            "commanded_positions": commanded,
+            "max_delta_rad": MAX_COMMAND_DELTA_RAD,
+            "duration_seconds": COMMAND_DURATION_SECONDS,
+            "joint_state_age_seconds": round(age, 4),
+            "max_observation_drift_rad": round(max(drift), 4),
+        }
+
     def _spin(self) -> None:
         import rclpy
         from rclpy.node import Node
         from sensor_msgs.msg import CompressedImage
         from sensor_msgs.msg import JointState
+        from trajectory_msgs.msg import JointTrajectory
 
         rclpy.init(args=None)
         node = Node("smolvla_camera_web_preview")
@@ -217,6 +282,11 @@ class CameraFrames:
                 1,
             )
         node.create_subscription(JointState, "/joint_states", self._receive_joint_state, 10)
+        with self._condition:
+            self._trajectory_publisher = node.create_publisher(
+                JointTrajectory, COMMAND_TOPIC, 10
+            )
+            self._condition.notify_all()
         try:
             rclpy.spin(node)
         finally:

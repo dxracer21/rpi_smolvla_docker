@@ -56,8 +56,8 @@ h2 { margin-bottom: 0; font-size: 1.25rem; letter-spacing: -0.02em; }
 .mode-switch input { width: 0; height: 0; opacity: 0; }
 .mode-slider { position: absolute; inset: 0; cursor: pointer; border: 1px solid #52616d; border-radius: 999px; background: #222e38; transition: 0.2s ease; }
 .mode-slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; border-radius: 50%; background: var(--amber); transition: 0.2s ease; }
-.mode-switch input:checked + .mode-slider { border-color: rgba(67, 230, 210, 0.7); background: var(--cyan-soft); }
-.mode-switch input:checked + .mode-slider::before { transform: translateX(26px); background: var(--cyan); }
+.mode-switch input:checked + .mode-slider { border-color: rgba(255, 107, 107, 0.75); background: rgba(255, 107, 107, 0.12); }
+.mode-switch input:checked + .mode-slider::before { transform: translateX(26px); background: var(--red); }
 .mode-switch input:disabled + .mode-slider { cursor: not-allowed; opacity: 0.45; }
 
 .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
